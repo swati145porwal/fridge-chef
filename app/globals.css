@@ -1,0 +1,539 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+/* FridgeChef Premium Styles */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--fc-border2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--fc-text-sub);
+}
+
+html {
+  scroll-behavior: smooth;
+  /* Prevent horizontal overflow on mobile */
+  overflow-x: hidden;
+  /* Base font size for better readability */
+  font-size: 15px;
+}
+
+/* Safe area inset helpers — used by bottom nav and header */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  /* Bottom nav height + safe area */
+  --nav-height: calc(60px + var(--safe-bottom));
+}
+
+/* ── Keyframes ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes popIn {
+  0%   { opacity: 0; transform: scale(0.8); }
+  70%  { transform: scale(1.06); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes shimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.55; }
+}
+@keyframes glow {
+  0%, 100% { box-shadow: 0 0 20px var(--fc-accent-glow); }
+  50%       { box-shadow: 0 0 44px var(--fc-accent-glow); }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-5px); }
+}
+@keyframes bounceIn {
+  0%   { opacity: 0; transform: scale(0.7) translateY(10px); }
+  60%  { transform: scale(1.05) translateY(-4px); }
+  80%  { transform: scale(0.97); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes navPop {
+  0%   { transform: translateY(0) scale(1); }
+  40%  { transform: translateY(-6px) scale(1.15); }
+  70%  { transform: translateY(2px) scale(0.95); }
+  100% { transform: translateY(0) scale(1); }
+}
+@keyframes ripple {
+  0%   { transform: scale(0); opacity: 0.4; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+@keyframes ingSelect {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(0.92); }
+  70%  { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+@keyframes resultReveal {
+  from { opacity: 0; transform: translateY(20px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Animation utility classes ── */
+.fa  { animation: fadeUp    0.38s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.fi  { animation: fadeIn    0.3s  ease-out both; }
+.sl  { animation: slideIn   0.32s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.sll { animation: slideInLeft 0.32s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.su  { animation: slideUp   0.42s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.sc  { animation: scaleIn   0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.pi  { animation: popIn     0.4s  cubic-bezier(0.22, 1, 0.36, 1) both; }
+.bi  { animation: bounceIn  0.5s  cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* Staggered children — add .stagger to parent, children auto-delay */
+.stagger > *:nth-child(1)  { animation-delay: 0ms; }
+.stagger > *:nth-child(2)  { animation-delay: 55ms; }
+.stagger > *:nth-child(3)  { animation-delay: 110ms; }
+.stagger > *:nth-child(4)  { animation-delay: 165ms; }
+.stagger > *:nth-child(5)  { animation-delay: 220ms; }
+.stagger > *:nth-child(6)  { animation-delay: 275ms; }
+.stagger > *:nth-child(7)  { animation-delay: 330ms; }
+.stagger > *:nth-child(8)  { animation-delay: 385ms; }
+.stagger > *:nth-child(9)  { animation-delay: 440ms; }
+.stagger > *:nth-child(10) { animation-delay: 495ms; }
+
+/* Ingredient grid cards stagger */
+.ing-grid > * { animation: scaleIn 0.3s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.ing-grid > *:nth-child(1)  { animation-delay: 0ms; }
+.ing-grid > *:nth-child(2)  { animation-delay: 30ms; }
+.ing-grid > *:nth-child(3)  { animation-delay: 60ms; }
+.ing-grid > *:nth-child(4)  { animation-delay: 90ms; }
+.ing-grid > *:nth-child(5)  { animation-delay: 120ms; }
+.ing-grid > *:nth-child(6)  { animation-delay: 150ms; }
+.ing-grid > *:nth-child(7)  { animation-delay: 180ms; }
+.ing-grid > *:nth-child(8)  { animation-delay: 210ms; }
+.ing-grid > *:nth-child(9)  { animation-delay: 240ms; }
+.ing-grid > *:nth-child(10) { animation-delay: 270ms; }
+.ing-grid > *:nth-child(n+11) { animation-delay: 300ms; }
+
+/* Recipe card stagger */
+.recipe-list > * { animation: resultReveal 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.recipe-list > *:nth-child(1) { animation-delay: 0ms; }
+.recipe-list > *:nth-child(2) { animation-delay: 70ms; }
+.recipe-list > *:nth-child(3) { animation-delay: 140ms; }
+.recipe-list > *:nth-child(4) { animation-delay: 210ms; }
+.recipe-list > *:nth-child(5) { animation-delay: 280ms; }
+.recipe-list > *:nth-child(n+6) { animation-delay: 350ms; }
+
+/* Nav icon tap bounce */
+.nav-active-icon { animation: navPop 0.4s cubic-bezier(0.22, 1, 0.36, 1); }
+
+/* Ingredient selected pop */
+.ing-pop { animation: ingSelect 0.3s cubic-bezier(0.22, 1, 0.36, 1); }
+
+/* Premium Tap Interaction */
+.tap { 
+  transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+  cursor: pointer; 
+  -webkit-tap-highlight-color: transparent;
+  /* Minimum touch target on mobile */
+  min-height: 44px;
+}
+.tap:hover { 
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+.tap:active { 
+  transform: scale(0.98) translateY(0);
+  opacity: 0.85;
+}
+
+/* Small tap target override for icon-only/compact buttons */
+.tap-sm {
+  min-height: unset;
+}
+
+/* Glass Effect */
+.glass {
+  backdrop-filter: blur(24px) saturate(1.5);
+  -webkit-backdrop-filter: blur(24px) saturate(1.5);
+}
+
+/* Premium Card Hover */
+.card-hover {
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.card-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 48px -12px rgba(0,0,0,0.22), 0 4px 16px -4px rgba(0,0,0,0.12);
+}
+.card-hover:active {
+  transform: translateY(-1px);
+}
+
+/* Selection Ring */
+.ring-selection {
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+/* Ingredient item selected glow */
+.ing-selected {
+  box-shadow: 0 0 0 2px var(--fc-accent), 0 4px 20px -4px var(--fc-accent-glow);
+}
+
+/* Diet accent stripes */
+.diet-veg    { border-top: 2px solid #22c55e; }
+.diet-vegan  { border-top: 2px solid #10b981; }
+.diet-nonveg { border-top: 2px solid #f43f5e; }
+.diet-egget  { border-top: 2px solid #d4af37; }
+
+/* Gradient text */
+.text-gradient {
+  background: linear-gradient(135deg, var(--fc-accent) 0%, #c2410c 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Hero ambient glow */
+.hero-glow {
+  background: radial-gradient(ellipse 80% 60% at 50% 0%, var(--fc-accent-glow) 0%, transparent 60%);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* Shimmer loading skeleton */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--fc-card2);
+}
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, var(--fc-border) 50%, transparent 100%);
+  animation: shimmer 1.6s ease infinite;
+}
+
+/* Pill badge */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+/* Frosted card - premium surface */
+.card-frosted {
+  background: var(--fc-card);
+  border: 1.5px solid var(--fc-border);
+  border-radius: 16px;
+  box-shadow: var(--fc-shadow-md);
+  position: relative;
+  overflow: hidden;
+}
+
+:root {
+  --background: oklch(0.965 0.004 210);
+  --foreground: oklch(0.135 0.02 220);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.135 0.02 220);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.135 0.02 220);
+  --primary: oklch(0.44 0.1 185);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.94 0.008 210);
+  --secondary-foreground: oklch(0.25 0.015 220);
+  --muted: oklch(0.94 0.008 210);
+  --muted-foreground: oklch(0.5 0.025 215);
+  --accent: oklch(0.44 0.1 185);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.55 0.22 25);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(0.88 0.012 215);
+  --input: oklch(0.88 0.012 215);
+  --ring: oklch(0.44 0.1 185);
+  --chart-1: oklch(0.58 0.18 35);
+  --chart-2: oklch(0.65 0.14 85);
+  --chart-3: oklch(0.55 0.15 165);
+  --chart-4: oklch(0.7 0.12 280);
+  --chart-5: oklch(0.6 0.2 350);
+  --radius: 0.75rem;
+  --sidebar: oklch(0.98 0.005 80);
+  --sidebar-foreground: oklch(0.145 0.01 60);
+  --sidebar-primary: oklch(0.58 0.18 35);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.96 0.008 80);
+  --sidebar-accent-foreground: oklch(0.25 0.01 60);
+  --sidebar-border: oklch(0.92 0.008 80);
+  --sidebar-ring: oklch(0.58 0.18 35);
+
+  /* FridgeChef Light Theme — Warm Amber */
+  --fc-bg: #fafaf9;
+  --fc-surface: #f5f5f4;
+  --fc-card: #ffffff;
+  --fc-card2: #fafaf9;
+  --fc-border: #d6d3d1;
+  --fc-border2: #b8b4b0;
+  --fc-text: #1c1917;
+  --fc-text-sub: #57534e;
+  --fc-text-mut: #a8a29e;
+  --fc-accent: #b45309;
+  --fc-accent-light: #fff7ed;
+  --fc-accent-glow: rgba(180, 83, 9, 0.18);
+  --fc-gold: #92400e;
+  --fc-gold-light: #fef3c7;
+  --fc-teal: #0f766e;
+  --fc-teal-light: #f0fdfa;
+  --fc-teal-bg: #f0fdfa;
+  --fc-nav-bg: rgba(255, 255, 255, 0.96);
+  --fc-nav-border: rgba(231, 229, 228, 0.95);
+  --fc-shadow-sm: 0 1px 3px rgba(28,25,23,0.06);
+  --fc-shadow-md: 0 4px 14px rgba(28,25,23,0.08);
+  --fc-shadow-lg: 0 16px 48px rgba(28,25,23,0.12);
+  --fc-shadow-glow: 0 0 40px rgba(194, 65, 12, 0.15);
+}
+
+.dark {
+  --background: oklch(0.1 0.02 220);
+  --foreground: oklch(0.92 0.01 210);
+  --card: oklch(0.135 0.025 220);
+  --card-foreground: oklch(0.92 0.01 210);
+  --popover: oklch(0.135 0.025 220);
+  --popover-foreground: oklch(0.92 0.01 210);
+  --primary: oklch(0.62 0.14 185);
+  --primary-foreground: oklch(0.1 0.02 220);
+  --secondary: oklch(0.18 0.025 220);
+  --secondary-foreground: oklch(0.88 0.01 210);
+  --muted: oklch(0.18 0.025 220);
+  --muted-foreground: oklch(0.55 0.03 215);
+  --accent: oklch(0.62 0.14 185);
+  --accent-foreground: oklch(0.1 0.02 220);
+  --destructive: oklch(0.5 0.2 25);
+  --destructive-foreground: oklch(0.92 0.01 210);
+  --border: oklch(0.2 0.025 220);
+  --input: oklch(0.2 0.025 220);
+  --ring: oklch(0.62 0.14 185);
+  --chart-1: oklch(0.65 0.2 35);
+  --chart-2: oklch(0.7 0.14 85);
+  --chart-3: oklch(0.6 0.15 165);
+  --chart-4: oklch(0.65 0.12 280);
+  --chart-5: oklch(0.65 0.2 350);
+  --sidebar: oklch(0.14 0.01 60);
+  --sidebar-foreground: oklch(0.95 0.008 80);
+  --sidebar-primary: oklch(0.65 0.2 35);
+  --sidebar-primary-foreground: oklch(0.12 0.01 60);
+  --sidebar-accent: oklch(0.22 0.015 60);
+  --sidebar-accent-foreground: oklch(0.9 0.008 80);
+  --sidebar-border: oklch(0.22 0.015 60);
+  --sidebar-ring: oklch(0.65 0.2 35);
+
+  /* FridgeChef Dark Theme — Deep Warm with Amber */
+  --fc-bg: #0c0a08;
+  --fc-surface: #161210;
+  --fc-card: #1c1714;
+  --fc-card2: #231e19;
+  --fc-border: #2e2620;
+  --fc-border2: #3d342c;
+  --fc-text: #f5ede6;
+  --fc-text-sub: #a89080;
+  --fc-text-mut: #5c4a3c;
+  --fc-accent: #f59e0b;
+  --fc-accent-light: #2c1f08;
+  --fc-accent-glow: rgba(245, 158, 11, 0.35);
+  --fc-gold: #fbbf24;
+  --fc-gold-light: #2a1e00;
+  --fc-teal: #34d399;
+  --fc-teal-light: #072018;
+  --fc-teal-bg: #0a1c14;
+  --fc-nav-bg: rgba(12, 10, 8, 0.97);
+  --fc-nav-border: rgba(46, 38, 32, 0.95);
+  --fc-shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
+  --fc-shadow-md: 0 4px 16px rgba(0,0,0,0.5);
+  --fc-shadow-lg: 0 16px 48px rgba(0,0,0,0.7);
+  --fc-shadow-glow: 0 0 60px rgba(245, 158, 11, 0.2);
+}
+
+@theme inline {
+  --font-sans: 'DM Sans', 'DM Sans Fallback', system-ui, sans-serif;
+  --font-serif: 'Cormorant Garamond', 'Cormorant Garamond Fallback', Georgia, serif;
+  --font-mono: 'Geist Mono', 'Geist Mono Fallback', monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "ss01", "ss02", "cv01";
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Premium Focus States */
+button:focus-visible,
+input:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--fc-accent);
+  outline-offset: 2px;
+}
+
+/* Better Input Styling */
+input::placeholder {
+  color: var(--fc-text-mut);
+  opacity: 1;
+}
+
+/* Smooth Transitions */
+*, *::before, *::after {
+  transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Disable transitions during page load */
+.no-transitions * {
+  transition: none !important;
+}
+
+/* ─── Mobile Utilities ─── */
+
+/* Remove tap highlight on iOS/Android */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Prevent text size adjustment on orientation change (iOS) */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Better momentum scrolling on iOS */
+.scroll-y {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+/* Hide scrollbars on horizontal pill rows but keep scrolling */
+.scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+.scroll-x::-webkit-scrollbar {
+  display: none;
+}
+
+/* Minimum touch target 44×44 (iOS HIG guideline) */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Full-bleed safe padding at top (notch area) */
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* Full-bleed safe padding at bottom (home indicator) */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* On very small screens tighten up font sizing */
+@media (max-width: 360px) {
+  html {
+    font-size: 15px;
+  }
+}
+
+/* Prevent inputs from zooming on iOS (font-size must be ≥16px) */
+input, textarea, select {
+  font-size: max(16px, 1em) !important;
+}
