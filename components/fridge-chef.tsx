@@ -4050,7 +4050,7 @@ function HomeScreen({
           >
             🍛
           </div>
-          <p style={{ color: "#a87050", fontSize: 13, fontWeight: 500, marginBottom: 4 }}>
+          <p style={{ color: T.textSub, fontSize: 13, fontWeight: 500, marginBottom: 4 }}>
             {greetingEmoji} {greeting}{firstName ? `, ${firstName}` : ""}!
           </p>
           <p
@@ -4058,7 +4058,7 @@ function HomeScreen({
               fontFamily: "var(--font-cormorant), serif",
               fontSize: 30,
               fontWeight: 700,
-              color: "#faf0e0",
+              color: T.text,
               lineHeight: 1.15,
               letterSpacing: "-0.02em",
               marginBottom: 16,
@@ -4090,11 +4090,11 @@ function HomeScreen({
             }}
           >
             <div style={{ textAlign: "left" }}>
-              <p style={{ color: "#a87050", fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, marginBottom: 3 }}>
+              <p style={{ color: T.textSub, fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, marginBottom: 3 }}>
                 {mealSlotEmoji} Time for {mealSlotLabel}
               </p>
-              <p style={{ color: "#faf0e0", fontSize: 15, fontWeight: 600 }}>{(currentMeal as Recipe).name}</p>
-              <p style={{ color: "#a87050", fontSize: 11, marginTop: 2 }}>{(currentMeal as Recipe).time} · {(currentMeal as Recipe).cal} kcal</p>
+              <p style={{ color: T.text, fontSize: 15, fontWeight: 600 }}>{(currentMeal as Recipe).name}</p>
+              <p style={{ color: T.textSub, fontSize: 11, marginTop: 2 }}>{(currentMeal as Recipe).time} · {(currentMeal as Recipe).cal} kcal</p>
             </div>
             <div
               style={{
@@ -4130,7 +4130,7 @@ function HomeScreen({
               fontFamily: "inherit",
             }}
           >
-            <p style={{ color: "#faf0e0", fontSize: 14, fontWeight: 500 }}>
+            <p style={{ color: T.text, fontSize: 14, fontWeight: 500 }}>
               Open your fridge and find recipes →
             </p>
           </button>
