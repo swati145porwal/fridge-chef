@@ -1,7 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { getRecipeImageUrl, type RecipeImageSource } from "@/lib/recipe-images";
+import {
+  getRecipeImageFallbackUrl,
+  getRecipeImageUrl,
+  type RecipeImageSource,
+} from "@/lib/recipe-images";
 
 interface RecipeImageHeaderProps {
   recipe: RecipeImageSource;
@@ -24,8 +28,17 @@ export function RecipeImageHeader({
   marginBottom = 0,
   boxShadow,
 }: RecipeImageHeaderProps) {
+  const [src, setSrc] = useState(() => getRecipeImageUrl(recipe));
   const [failed, setFailed] = useState(false);
-  const src = getRecipeImageUrl(recipe);
+
+  function handleImageError() {
+    const fallback = getRecipeImageFallbackUrl(recipe);
+    if (fallback && src !== fallback) {
+      setSrc(fallback);
+      return;
+    }
+    setFailed(true);
+  }
 
   return (
     <div
@@ -46,7 +59,7 @@ export function RecipeImageHeader({
           src={src}
           alt={recipe.name}
           loading="lazy"
-          onError={() => setFailed(true)}
+          onError={handleImageError}
           style={{
             position: "absolute",
             inset: 0,

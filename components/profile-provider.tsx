@@ -58,46 +58,66 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
 
     async function bootstrap() {
-      let registry = listProfiles();
-      const legacyOnboarded = localStorage.getItem("fc5-onboarded");
-      const legacyPrefs = localStorage.getItem("fc5-prefs");
+      try {
+        let registry = listProfiles();
+        const legacyOnboarded = localStorage.getItem("fc5-onboarded");
+        const legacyPrefs = localStorage.getItem("fc5-prefs");
 
-      if (registry.length === 0 && (legacyOnboarded || legacyPrefs)) {
-        const migrated = createLocalProfile("Me");
-        migrated.onboarded = legacyOnboarded === "true";
-        saveProfile(migrated);
-        migrateLegacyStorage(migrated.id);
-        setActiveProfileId(migrated.id);
-        registry = listProfiles();
-      }
-
-      if (supabaseEnabled) {
-        try {
-          const supabase = createClient();
-          const { data } = await supabase.auth.getSession();
-          const session = data.session;
-          if (session?.user) {
-            const metaName =
-              (session.user.user_metadata?.name as string | undefined) ||
-              session.user.email?.split("@")[0] ||
-              "Account";
-            const profile = createAccountProfile({
-              name: metaName,
-              email: session.user.email ?? "",
-              authUserId: session.user.id,
-            });
-            setActiveProfileId(profile.id);
-          }
-        } catch {
-          // Supabase unavailable — local profiles still work
+        if (registry.length === 0 && (legacyOnboarded || legacyPrefs)) {
+          const migrated = createLocalProfile("Me");
+          migrated.onboarded = legacyOnboarded === "true";
+          saveProfile(migrated);
+          migrateLegacyStorage(migrated.id);
+          setActiveProfileId(migrated.id);
+          registry = listProfiles();
         }
-      }
 
-      if (!cancelled) {
-        setProfiles(listProfiles());
-        const activeId = getActiveProfileId();
-        setActiveProfile(activeId ? getProfile(activeId) ?? null : null);
-        setReady(true);
+        if (registry.length === 0) {
+          const profile = createLocalProfile("Me");
+          setActiveProfileId(profile.id);
+          registry = listProfiles();
+        }
+
+        if (supabaseEnabled) {
+          try {
+            const supabase = createClient();
+            const sessionResult = await Promise.race([
+              supabase.auth.getSession(),
+              new Promise<null>((resolve) => setTimeout(() => resolve(null), 4000)),
+            ]);
+            const session =
+              sessionResult && "data" in sessionResult
+                ? sessionResult.data.session
+                : null;
+            if (session?.user) {
+              const metaName =
+                (session.user.user_metadata?.name as string | undefined) ||
+                session.user.email?.split("@")[0] ||
+                "Account";
+              const profile = createAccountProfile({
+                name: metaName,
+                email: session.user.email ?? "",
+                authUserId: session.user.id,
+              });
+              setActiveProfileId(profile.id);
+            }
+          } catch {
+            // Supabase unavailable — local profiles still work
+          }
+        }
+
+        if (!cancelled) {
+          setProfiles(listProfiles());
+          const activeId = getActiveProfileId();
+          setActiveProfile(activeId ? getProfile(activeId) ?? null : null);
+        }
+      } catch {
+        if (!cancelled) {
+          setProfiles([]);
+          setActiveProfile(null);
+        }
+      } finally {
+        if (!cancelled) setReady(true);
       }
     }
 

@@ -33,8 +33,11 @@ const IMG = {
   tomato: U("photo-1601050690597-df0568f70950"),
   sweet: U("photo-1606787366850-de6330128bfc"),
   millet: U("photo-1628840042765-356cda07504e"),
-  /** Local Wikimedia photo — potato & cauliflower sabzi, not generic veg */
-  alooGobi: "/recipe-images/aloo-gobi.jpg",
+  /** Local Wikimedia photo — potato & cauliflower sabzi */
+  alooGobi: "/recipe-images/aloo-gobi.jpg?v=2",
+  /** Remote fallback if local file fails to load */
+  alooGobiRemote:
+    "https://upload.wikimedia.org/wikipedia/commons/9/9b/Aloo_Gobi_Sabzi.jpg",
 };
 
 /** Recipe name → image URL */
@@ -147,7 +150,7 @@ const BY_CORE: Record<string, string> = {
 
 const DIET_DEFAULT: Record<string, string> = {
   veg: IMG.thali,
-  vegan: IMG.vegPlate,
+  vegan: IMG.curry,
   nonveg: IMG.grilled,
   egget: IMG.eggs,
 };
@@ -165,4 +168,12 @@ export function getRecipeImageUrl(r: RecipeImageSource): string {
     DIET_DEFAULT[r.diet || "veg"] ||
     IMG.thali
   );
+}
+
+/** Alternate URL when the primary image fails (e.g. cached 404). */
+export function getRecipeImageFallbackUrl(r: RecipeImageSource): string | null {
+  if (r.name === "Aloo Gobi" || r.core === "Cauliflower") {
+    return IMG.alooGobiRemote;
+  }
+  return null;
 }
