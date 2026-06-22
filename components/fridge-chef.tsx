@@ -777,8 +777,8 @@ function estimateMacros(r: Recipe): { protein: number; carbs: number; fat: numbe
   const cal = r.cal;
   let pPct: number, cPct: number, fPct: number;
 
-  const isHighProtein = r.health.includes("protein") || r.diet === "nonveg" || r.diet === "egget";
-  const isLowCarb     = r.health.includes("lowcarb");
+  const isHighProtein = (r.health ?? []).includes("protein") || r.diet === "nonveg" || r.diet === "egget";
+  const isLowCarb     = (r.health ?? []).includes("lowcarb");
   const isDal         = /moong|toor|masoor|chana|rajma|urad|lobia|chickpea|soya|tofu|paneer/.test(r.core.toLowerCase());
   const isGrain       = /rice|wheat|atta|semolina|suji|poha|dosa|batter|bread|pasta|ragi|jowar|bajra|millet/.test(r.core.toLowerCase());
 
@@ -820,6 +820,67 @@ function macroFitScore(r: Recipe, targets: MacroTargets): number {
   if (within(m.carbs,   tCarb, 0.30)) score++;
   if (within(m.fat,     tFat,  0.35)) score++;
   return score;
+}
+
+function getMealTargets(targets: MacroTargets | undefined) {
+  if (!targets || targets.goal === "none" || !targets.calories) return null;
+  return {
+    calories: Math.round(targets.calories / 3),
+    protein: Math.round(targets.protein / 3),
+  };
+}
+
+/** Compact kcal + protein row, with optional per-meal goal comparison */
+function RecipeNutritionLine({
+  r,
+  targets,
+  size = "sm",
+}: {
+  r: Recipe;
+  targets?: MacroTargets;
+  size?: "sm" | "md";
+}) {
+  const m = estimateMacros(r);
+  const meal = getMealTargets(targets);
+  const fontSize = size === "md" ? 12 : 11;
+  const calPct = meal?.calories ? Math.round((r.cal / meal.calories) * 100) : null;
+  const proPct = meal?.protein ? Math.round((m.protein / meal.protein) * 100) : null;
+  const calFit = meal && Math.abs(r.cal - meal.calories) / meal.calories <= 0.25;
+  const proFit = meal && meal.protein > 0 && Math.abs(m.protein - meal.protein) / meal.protein <= 0.3;
+
+  return (
+    <div style={{ marginTop: size === "md" ? 4 : 2 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+        <span style={{ color: T.gold, fontSize, fontWeight: 600 }}>🔥 {r.cal} kcal</span>
+        <span style={{ color: "#ef4444", fontSize, fontWeight: 600 }}>💪 {m.protein}g protein</span>
+        {meal && (calFit || proFit) && (
+          <span
+            style={{
+              background: `${T.accent}18`,
+              color: T.accent,
+              border: `1px solid ${T.accent}35`,
+              borderRadius: 5,
+              padding: "1px 6px",
+              fontSize: 9,
+              fontWeight: 700,
+            }}
+          >
+            ✓ Fits goal
+          </span>
+        )}
+      </div>
+      {meal && (
+        <p style={{ color: T.textMut, fontSize: 10, margin: "3px 0 0", lineHeight: 1.4 }}>
+          Meal target: {meal.calories} kcal · {meal.protein}g protein
+          {calPct !== null && (
+            <span style={{ color: calFit ? T.teal : T.textSub }}>
+              {" "}· {calPct}% cal{proPct !== null ? `, ${proPct}% protein` : ""}
+            </span>
+          )}
+        </p>
+      )}
+    </div>
+  );
 }
 
 function isoWeek() {
@@ -3441,6 +3502,7 @@ function ResultsScreen({
               <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                 <span style={{ color: T.textSub, fontSize: 13 }}>⏱ <strong style={{ color: T.text }}>{r.time}</strong></span>
                 <span style={{ color: T.gold, fontSize: 13, fontWeight: 600 }}>🔥 {r.cal} kcal</span>
+                <span style={{ color: "#ef4444", fontSize: 13, fontWeight: 600 }}>💪 {macros.protein}g</span>
                 {r.health[0] && <span style={{ color: T.teal, fontSize: 12, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{PREF.health.find((x) => x.id === r.health[0])?.label || r.health[0]}</span>}
                 <div style={{ width: 26, height: 26, borderRadius: "50%", background: isBest ? T.accent : T.card2, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={isBest ? "#fff" : T.textSub} strokeWidth="2.5">
@@ -3936,6 +3998,12 @@ function HomeScreen({
   const mealSlotLabel = mealSlot === "breakfast" ? "Breakfast" : mealSlot === "lunch" ? "Lunch" : "Dinner";
   const mealSlotEmoji = mealSlot === "breakfast" ? "🌅" : mealSlot === "lunch" ? "☀️" : "🌙";
   const currentMeal = todayPlan?.[mealSlot as keyof typeof todayPlan] as Recipe | null | undefined;
+  const hasMacroGoal =
+    (prefs.macroTargets?.goal || "none") !== "none" && (prefs.macroTargets?.calories ?? 0) > 0;
+  const mealTarget = getMealTargets(prefs.macroTargets);
+  const todayMeals = [todayPlan?.breakfast, todayPlan?.lunch, todayPlan?.dinner].filter(Boolean) as Recipe[];
+  const todayCal = todayMeals.reduce((sum, r) => sum + r.cal, 0);
+  const todayPro = todayMeals.reduce((sum, r) => sum + estimateMacros(r).protein, 0);
 
   // Mood chips
   const MOODS = [
@@ -4094,7 +4162,8 @@ function HomeScreen({
                 {mealSlotEmoji} Time for {mealSlotLabel}
               </p>
               <p style={{ color: T.text, fontSize: 15, fontWeight: 600 }}>{(currentMeal as Recipe).name}</p>
-              <p style={{ color: T.textSub, fontSize: 11, marginTop: 2 }}>{(currentMeal as Recipe).time} · {(currentMeal as Recipe).cal} kcal</p>
+              <p style={{ color: T.textSub, fontSize: 11, marginTop: 2 }}>{(currentMeal as Recipe).time}</p>
+              <RecipeNutritionLine r={currentMeal as Recipe} targets={prefs.macroTargets} size="md" />
             </div>
             <div
               style={{
@@ -4230,21 +4299,48 @@ function HomeScreen({
       {/* ── Today's Meals (compact) ── */}
       <div style={{ background: T.card, borderRadius: 14, border: `1.5px solid ${T.border}`, overflow: "hidden", marginBottom: 12 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px 8px" }}>
-          <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: T.text }}>Today · {WD[todayIdx].full}</p>
-          <button onClick={onPlan} className="tap" style={{ background: "none", border: "none", color: T.accent, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}>View plan →</button>
+          <div>
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: T.text }}>Today · {WD[todayIdx].full}</p>
+            {hasMacroGoal && todayMeals.length > 0 && (
+              <p style={{ margin: "4px 0 0", fontSize: 10, color: T.textSub }}>
+                Day total: {todayCal} kcal · {todayPro}g protein
+                {prefs.macroTargets?.calories ? (
+                  <span style={{ color: T.textMut }}>
+                    {" "}
+                    / {prefs.macroTargets.calories} kcal · {prefs.macroTargets.protein}g protein goal
+                  </span>
+                ) : null}
+              </p>
+            )}
+          </div>
+          <button onClick={onPlan} className="tap" style={{ background: "none", border: "none", color: T.accent, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", flexShrink: 0 }}>View plan →</button>
         </div>
         {[
           { slot: "Breakfast", emoji: "🌅", r: todayPlan?.breakfast },
           { slot: "Lunch",     emoji: "☀️",  r: todayPlan?.lunch },
           { slot: "Dinner",    emoji: "🌙",  r: todayPlan?.dinner },
-        ].map(({ slot, emoji, r }, i) => (
+        ].map(({ slot, emoji, r }, i) => {
+          const macros = r ? estimateMacros(r) : null;
+          return (
           <div key={slot} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 14px", borderTop: `1px solid ${T.border}`, background: i % 2 === 0 ? "transparent" : `${T.accent}04` }}>
             <span style={{ fontSize: 16, flexShrink: 0 }}>{emoji}</span>
             <span style={{ fontSize: 12, fontWeight: 700, color: T.textSub, width: 72, flexShrink: 0 }}>{slot}</span>
-            <span style={{ fontSize: 14, color: r ? T.text : T.textMut, fontWeight: r ? 500 : 400, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r ? r.name : "Not set"}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ fontSize: 14, color: r ? T.text : T.textMut, fontWeight: r ? 500 : 400, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r ? r.name : "Not set"}</span>
+              {r && macros && (
+                <span style={{ fontSize: 10, color: T.textSub, display: "block", marginTop: 2 }}>
+                  🔥 {r.cal} kcal · 💪 {macros.protein}g protein
+                  {mealTarget && (
+                    <span style={{ color: T.textMut }}>
+                      {" "}({Math.round((r.cal / mealTarget.calories) * 100)}% cal)
+                    </span>
+                  )}
+                </span>
+              )}
+            </div>
             {r && <button onClick={() => yt(r.ytQ)} className="tap" style={{ background: "none", border: "none", color: "#e05040", fontSize: 11, cursor: "pointer", fontFamily: "inherit", flexShrink: 0, padding: "4px 0" }}>▶</button>}
           </div>
-        ))}
+        );})}
       </div>
 
       {/* ── History / insight ── */}
