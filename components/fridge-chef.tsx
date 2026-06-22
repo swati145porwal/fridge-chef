@@ -13,6 +13,8 @@ import {
   getActiveProfileId,
   profileStorageKey,
 } from "@/lib/profiles";
+import { RecipeImageHeader } from "./recipe-image-header";
+import { getRecipeImageUrl } from "@/lib/recipe-images";
 
 /* ─── Design Tokens (CSS Variables for Light/Dark support) ─── */
 const T = {
@@ -2304,27 +2306,16 @@ function RecipeDetail({ r, onBack, prefs, cookList, onToggleCook }: { r: Recipe;
   return (
     <div className="su">
       {/* Hero image */}
-      <div
-        style={{
-          height: 180,
-          borderRadius: 20,
-          overflow: "hidden",
-          marginBottom: 16,
-          background: `linear-gradient(145deg, ${detailGrad.g1}, ${detailGrad.g2})`,
-          position: "relative",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          boxShadow: `0 12px 40px -12px ${detailGrad.dot}40`,
-        }}
+      <RecipeImageHeader
+        recipe={r}
+        height={180}
+        emoji={detailEmoji}
+        gradient={detailGrad}
+        borderRadius={20}
+        marginBottom={16}
+        boxShadow={`0 12px 40px -12px ${detailGrad.dot}40`}
       >
-        <div style={{ position: "absolute", inset: 0, backgroundImage: `radial-gradient(circle, ${detailGrad.dot}22 1px, transparent 1px)`, backgroundSize: "16px 16px" }} />
-        <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%,-50%)", width: 200, height: 200, borderRadius: "50%", background: `radial-gradient(circle, ${detailGrad.dot}35, transparent 60%)` }} />
-        <span style={{ fontSize: 88, userSelect: "none", position: "relative", zIndex: 1, filter: "drop-shadow(0 8px 24px rgba(0,0,0,0.5))" }}>{detailEmoji}</span>
-        {/* Gradient overlay bottom */}
-        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 60, background: "linear-gradient(transparent, rgba(0,0,0,0.7))" }} />
-        {/* Diet badge bottom-left */}
-        <div style={{ position: "absolute", bottom: 12, left: 14, display: "flex", gap: 6, alignItems: "center" }}>
+        <div style={{ position: "absolute", bottom: 12, left: 14, display: "flex", gap: 6, alignItems: "center", zIndex: 2 }}>
           <span style={{ background: "rgba(0,0,0,0.6)", color: "#fff", fontSize: 10, fontWeight: 600, padding: "4px 10px", borderRadius: 6, backdropFilter: "blur(8px)" }}>
             {r.diet === "vegan" ? "🌱 Vegan" : r.diet === "veg" ? "🥬 Veg" : r.diet === "egget" ? "🥚 Egget" : "🍗 Non-Veg"}
           </span>
@@ -2332,7 +2323,7 @@ function RecipeDetail({ r, onBack, prefs, cookList, onToggleCook }: { r: Recipe;
             <span key={m} style={{ background: "rgba(0,0,0,0.55)", color: "#ccc", fontSize: 9, fontWeight: 500, padding: "4px 8px", borderRadius: 5, textTransform: "capitalize" }}>{m}</span>
           ))}
         </div>
-      </div>
+      </RecipeImageHeader>
 
       {/* Action bar: back + cook-this */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
@@ -2722,23 +2713,20 @@ function RecipeDetail({ r, onBack, prefs, cookList, onToggleCook }: { r: Recipe;
                 background: "none",
               }}
             >
-              {/* Thumbnail image area */}
-              <div
-                style={{
-                  height: 84,
-                  background: `linear-gradient(145deg, ${detailGrad.g1}, ${detailGrad.g2})`,
-                  position: "relative",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  overflow: "hidden",
-                }}
-              >
-                <div style={{ position: "absolute", inset: 0, backgroundImage: `radial-gradient(circle, ${detailGrad.dot}20 1px, transparent 1px)`, backgroundSize: "10px 10px" }} />
-                <span style={{ fontSize: 40, opacity: 0.4, position: "relative", userSelect: "none" }}>{detailEmoji}</span>
-                {/* YouTube play button */}
+              {/* Thumbnail — real dish photo + play overlay */}
+              <div style={{ height: 84, position: "relative", overflow: "hidden" }}>
+                <img
+                  src={getRecipeImageUrl(r)}
+                  alt={`${r.name} — ${label}`}
+                  loading="lazy"
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                />
+                <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.25)" }} />
                 <div style={{
                   position: "absolute",
+                  top: "50%",
+                  left: "50%",
+                  transform: "translate(-50%, -50%)",
                   width: 34,
                   height: 34,
                   borderRadius: 8,
@@ -2752,7 +2740,6 @@ function RecipeDetail({ r, onBack, prefs, cookList, onToggleCook }: { r: Recipe;
                     <polygon points="5,3 19,12 5,21" />
                   </svg>
                 </div>
-                {/* Duration-style badge */}
                 <div style={{ position: "absolute", bottom: 5, right: 5, background: "rgba(0,0,0,0.75)", borderRadius: 3, padding: "1px 5px" }}>
                   <span style={{ color: "#fff", fontSize: 8, fontWeight: 600 }}>YOUTUBE</span>
                 </div>
@@ -3405,23 +3392,10 @@ function ResultsScreen({
                 : "var(--fc-shadow-md)",
             }}
           >
-            {/* Visual Recipe Image Header */}
-            <div
-              style={{
-                height: 72,
-                background: `linear-gradient(145deg, ${cardGrad.g1}, ${cardGrad.g2})`,
-                position: "relative",
-                overflow: "hidden",
-                display: "flex",
-                alignItems: "center",
-                padding: "0 14px",
-                gap: 14,
-              }}
-            >
-              <div style={{ position: "absolute", inset: 0, backgroundImage: `radial-gradient(circle, ${cardGrad.dot}18 1px, transparent 1px)`, backgroundSize: "12px 12px" }} />
-              <span style={{ fontSize: 38, userSelect: "none", position: "relative", zIndex: 1, filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.35))", flexShrink: 0 }}>{cardEmoji}</span>
-              <div style={{ position: "relative", zIndex: 1, flex: 1, minWidth: 0 }}>
-                <p style={{ color: "#fff", fontSize: 15, fontWeight: 700, margin: 0, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textShadow: "0 1px 4px rgba(0,0,0,0.5)" }}>{r.name}</p>
+            {/* Recipe photo header */}
+            <RecipeImageHeader recipe={r} height={96} emoji={cardEmoji} gradient={cardGrad}>
+              <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "10px 14px", zIndex: 2 }}>
+                <p style={{ color: "#fff", fontSize: 15, fontWeight: 700, margin: 0, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textShadow: "0 1px 4px rgba(0,0,0,0.6)" }}>{r.name}</p>
                 <div style={{ display: "flex", gap: 5, marginTop: 4 }}>
                   {r.meal.slice(0, 2).map((m) => (
                     <span key={m} style={{ background: "rgba(0,0,0,0.45)", color: "#e5e5e5", fontSize: 9, fontWeight: 600, padding: "2px 6px", borderRadius: 4, textTransform: "capitalize" }}>{m}</span>
@@ -3429,7 +3403,7 @@ function ResultsScreen({
                   {inCook && <span style={{ background: "rgba(74,222,128,0.2)", color: "#4ade80", fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 4 }}>🛒 Added</span>}
                 </div>
               </div>
-            </div>
+            </RecipeImageHeader>
 
             {/* Card Body — compact single section */}
             <div style={{ padding: "10px 14px 0" }}>
