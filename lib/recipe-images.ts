@@ -162,9 +162,11 @@ export interface RecipeImageSource {
 }
 
 export function getRecipeImageUrl(r: RecipeImageSource): string {
+  const name = r.name?.trim();
+  const core = r.core?.trim();
   return (
-    BY_NAME[r.name] ||
-    BY_CORE[r.core] ||
+    (name && BY_NAME[name]) ||
+    (core && BY_CORE[core]) ||
     DIET_DEFAULT[r.diet || "veg"] ||
     IMG.thali
   );

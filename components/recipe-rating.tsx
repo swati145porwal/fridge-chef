@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { isSupabaseConfigured } from "@/lib/profiles";
 import { getDeviceId } from "@/hooks/use-device-id";
 
 const T = {
@@ -32,6 +33,7 @@ interface RatingData {
 }
 
 export function RecipeRating({ recipeId, recipeName }: RecipeRatingProps) {
+  const supabaseReady = isSupabaseConfigured();
   const [userRating, setUserRating] = useState<number>(0);
   const [userReview, setUserReview] = useState<string>("");
   const [avgRating, setAvgRating] = useState<number>(0);
@@ -42,55 +44,60 @@ export function RecipeRating({ recipeId, recipeName }: RecipeRatingProps) {
   const [hasRated, setHasRated] = useState(false);
   const [hoverRating, setHoverRating] = useState<number>(0);
 
-  const supabase = createClient();
-
   useEffect(() => {
+    if (!supabaseReady) return;
     loadRatings();
-  }, [recipeId]);
+  }, [recipeId, supabaseReady]);
 
   async function loadRatings() {
-    const deviceId = getDeviceId();
-    
-    // Fetch all ratings for this recipe
-    const { data: ratings } = await supabase
-      .from("recipe_ratings")
-      .select("*")
-      .eq("recipe_id", recipeId)
-      .order("created_at", { ascending: false });
+    if (!supabaseReady) return;
+    try {
+      const deviceId = getDeviceId();
+      const supabase = createClient();
+      const { data: ratings, error } = await supabase
+        .from("recipe_ratings")
+        .select("*")
+        .eq("recipe_id", recipeId)
+        .order("created_at", { ascending: false });
 
-    if (ratings && ratings.length > 0) {
-      const sum = ratings.reduce((acc, r) => acc + r.rating, 0);
-      setAvgRating(sum / ratings.length);
-      setTotalRatings(ratings.length);
-      setAllReviews(ratings.filter(r => r.review));
-      
-      // Check if user has rated
-      const userRatingData = ratings.find(r => r.device_id === deviceId);
-      if (userRatingData) {
-        setUserRating(userRatingData.rating);
-        setUserReview(userRatingData.review || "");
-        setHasRated(true);
+      if (error) return;
+
+      if (ratings && ratings.length > 0) {
+        const sum = ratings.reduce((acc, r) => acc + r.rating, 0);
+        setAvgRating(sum / ratings.length);
+        setTotalRatings(ratings.length);
+        setAllReviews(ratings.filter((r) => r.review));
+
+        const userRatingData = ratings.find((r) => r.device_id === deviceId);
+        if (userRatingData) {
+          setUserRating(userRatingData.rating);
+          setUserReview(userRatingData.review || "");
+          setHasRated(true);
+        }
       }
+    } catch {
+      // Ratings are optional — never break recipe detail
     }
   }
 
   async function submitRating() {
+    if (!supabaseReady) return;
     const deviceId = getDeviceId();
     if (!deviceId || userRating === 0) return;
 
     setIsSubmitting(true);
-    
+
     try {
-      await supabase
-        .from("recipe_ratings")
-        .upsert({
+      const supabase = createClient();
+      await supabase.from("recipe_ratings").upsert(
+        {
           recipe_id: recipeId,
           device_id: deviceId,
           rating: userRating,
-          review: userReview.trim() || null
-        }, {
-          onConflict: "recipe_id,device_id"
-        });
+          review: userReview.trim() || null,
+        },
+        { onConflict: "recipe_id,device_id" },
+      );
 
       setHasRated(true);
       setShowReviewForm(false);
@@ -100,6 +107,10 @@ export function RecipeRating({ recipeId, recipeName }: RecipeRatingProps) {
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  if (!supabaseReady) {
+    return null;
   }
 
   const StarIcon = ({ filled, half }: { filled: boolean; half?: boolean }) => (

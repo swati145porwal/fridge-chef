@@ -13,8 +13,7 @@ import {
   getActiveProfileId,
   profileStorageKey,
 } from "@/lib/profiles";
-import { RecipeImageHeader } from "./recipe-image-header";
-import { getRecipeImageUrl } from "@/lib/recipe-images";
+import { RecipeImageHeader, RecipeImageThumb } from "./recipe-image-header";
 
 /* ─── Design Tokens (CSS Variables for Light/Dark support) ─── */
 const T = {
@@ -2294,10 +2293,11 @@ function FridgeScreen({
 
 /* ─── Recipe Detail ─── */
 function RecipeDetail({ r, onBack, prefs, cookList, onToggleCook }: { r: Recipe; onBack: () => void; prefs: Prefs; cookList: number[]; onToggleCook: (id: number) => void }) {
-  const allergy = ALLERGENS.filter((a) => r.allergens.includes(a.id));
-  const cuisineLabels = r.cuisines
+  const allergy = ALLERGENS.filter((a) => (r.allergens ?? []).includes(a.id));
+  const cuisineLabels = (r.cuisines ?? [])
     .map((c) => PREF.cuisine.find((x) => x.id === c)?.label || c)
     .join(" · ");
+  const mealTags = r.meal ?? [];
 
   const inCookList = cookList.includes(r.id);
   const detailGrad = getRecipeGradient(r);
@@ -2308,7 +2308,7 @@ function RecipeDetail({ r, onBack, prefs, cookList, onToggleCook }: { r: Recipe;
       {/* Hero image */}
       <RecipeImageHeader
         recipe={r}
-        height={180}
+        variant="hero"
         emoji={detailEmoji}
         gradient={detailGrad}
         borderRadius={20}
@@ -2319,7 +2319,7 @@ function RecipeDetail({ r, onBack, prefs, cookList, onToggleCook }: { r: Recipe;
           <span style={{ background: "rgba(0,0,0,0.6)", color: "#fff", fontSize: 10, fontWeight: 600, padding: "4px 10px", borderRadius: 6, backdropFilter: "blur(8px)" }}>
             {r.diet === "vegan" ? "🌱 Vegan" : r.diet === "veg" ? "🥬 Veg" : r.diet === "egget" ? "🥚 Egget" : "🍗 Non-Veg"}
           </span>
-          {r.meal.map((m) => (
+          {mealTags.map((m) => (
             <span key={m} style={{ background: "rgba(0,0,0,0.55)", color: "#ccc", fontSize: 9, fontWeight: 500, padding: "4px 8px", borderRadius: 5, textTransform: "capitalize" }}>{m}</span>
           ))}
         </div>
@@ -2368,7 +2368,7 @@ function RecipeDetail({ r, onBack, prefs, cookList, onToggleCook }: { r: Recipe;
       >
         <Lbl c={T.accent}>{cuisineLabels}</Lbl>
         <button
-          onClick={() => yt(r.ytQ)}
+          onClick={() => yt(r.ytQ || `${r.name} recipe`)}
           className="tap"
           style={{
             background: "none",
@@ -2691,7 +2691,7 @@ function RecipeDetail({ r, onBack, prefs, cookList, onToggleCook }: { r: Recipe;
         {/* Scrollable thumbnail cards */}
         <div className="scroll-x" style={{ display: "flex", gap: 10, paddingBottom: 4, marginBottom: 12 }}>
           {[
-            { query: r.ytQ,                              label: "Full Recipe",        sub: "Complete guide" },
+            { query: r.ytQ || `${r.name} recipe`,              label: "Full Recipe",        sub: "Complete guide" },
             { query: `${r.name} step by step`,           label: "Step by Step",       sub: "Beginner friendly" },
             { query: `${r.name} restaurant style`,       label: "Restaurant Style",   sub: "Pro technique" },
             { query: `${r.name} Hebbars Kitchen`,        label: "Hebbars Kitchen",    sub: "Popular channel" },
@@ -2714,14 +2714,8 @@ function RecipeDetail({ r, onBack, prefs, cookList, onToggleCook }: { r: Recipe;
               }}
             >
               {/* Thumbnail — real dish photo + play overlay */}
-              <div style={{ height: 84, position: "relative", overflow: "hidden" }}>
-                <img
-                  src={getRecipeImageUrl(r)}
-                  alt={`${r.name} — ${label}`}
-                  loading="lazy"
-                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                />
-                <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.25)" }} />
+              <div style={{ position: "relative" }}>
+                <RecipeImageThumb recipe={r} label={`${r.name} — ${label}`} />
                 <div style={{
                   position: "absolute",
                   top: "50%",
@@ -2735,12 +2729,13 @@ function RecipeDetail({ r, onBack, prefs, cookList, onToggleCook }: { r: Recipe;
                   alignItems: "center",
                   justifyContent: "center",
                   boxShadow: "0 4px 14px rgba(255,0,0,0.45)",
+                  pointerEvents: "none",
                 }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="white">
                     <polygon points="5,3 19,12 5,21" />
                   </svg>
                 </div>
-                <div style={{ position: "absolute", bottom: 5, right: 5, background: "rgba(0,0,0,0.75)", borderRadius: 3, padding: "1px 5px" }}>
+                <div style={{ position: "absolute", bottom: 5, right: 5, background: "rgba(0,0,0,0.75)", borderRadius: 3, padding: "1px 5px", pointerEvents: "none" }}>
                   <span style={{ color: "#fff", fontSize: 8, fontWeight: 600 }}>YOUTUBE</span>
                 </div>
               </div>
@@ -2934,10 +2929,26 @@ function ResultsScreen({
       }
       
       if (data.recipe) {
+        const raw = data.recipe;
         const aiRecipe: Recipe = {
-          ...data.recipe,
+          id: Date.now(),
+          name: raw.name,
+          core: raw.ingredients?.[0]?.name || raw.name,
+          diet: raw.diet === "eggetarian" ? "egget" : raw.diet === "nonveg" ? "nonveg" : raw.diet,
+          meal: raw.meal ?? ["lunch"],
+          cuisines: raw.cuisines ?? ["north"],
+          allergens: raw.allergens ?? [],
+          avoid: [],
+          health: [],
+          time: typeof raw.time === "number" ? `${raw.time} min` : String(raw.time || "30 min"),
+          cal: raw.cal ?? 300,
+          desc: raw.steps?.[0] ? `AI-generated recipe using your ingredients.` : "",
+          pairing: null,
+          steps: raw.steps ?? [],
+          ytQ: `${raw.name} recipe`,
           score: 5,
-        };
+          isGenerated: true,
+        } as Recipe & { isGenerated?: boolean };
         setGeneratedRecipes((prev) => [aiRecipe, ...prev]);
         setGenerationCount((c) => c + 1);
       }
@@ -3371,9 +3382,17 @@ function ResultsScreen({
         const cardGrad = getRecipeGradient(r);
         const cardEmoji = getRecipeEmoji(r);
         return (
-          <button
+          <div
             key={r.id}
+            role="button"
+            tabIndex={0}
             onClick={() => onOpen(r)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onOpen(r);
+              }
+            }}
             className={`tap card-hover ${dietClass}`}
             style={{
               display: "block",
@@ -3393,7 +3412,7 @@ function ResultsScreen({
             }}
           >
             {/* Recipe photo header */}
-            <RecipeImageHeader recipe={r} height={96} emoji={cardEmoji} gradient={cardGrad}>
+            <RecipeImageHeader recipe={r} variant="card" emoji={cardEmoji} gradient={cardGrad}>
               <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "10px 14px", zIndex: 2 }}>
                 <p style={{ color: "#fff", fontSize: 15, fontWeight: 700, margin: 0, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textShadow: "0 1px 4px rgba(0,0,0,0.6)" }}>{r.name}</p>
                 <div style={{ display: "flex", gap: 5, marginTop: 4 }}>
@@ -3498,7 +3517,7 @@ function ResultsScreen({
                 </div>
               </div>
             </div>
-          </button>
+          </div>
         );
       })}
       </div>
