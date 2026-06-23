@@ -200,13 +200,22 @@ export function writeProfileStorageSnapshot(
   localStorage.removeItem(profileStorageKey(profileId, "openai_api_key"));
 }
 
+export function replaceActiveProfileWithFresh(name = "Me"): UserProfile {
+  clearLegacyStorageKeys();
+  const oldId = getActiveProfileId();
+  if (oldId) {
+    removeProfile(oldId);
+  }
+  const profile = createLocalProfile(name.trim() || "Me");
+  setActiveProfileId(profile.id);
+  return profile;
+}
+
 export function activateFallbackProfile(): UserProfile {
   const remaining = listProfiles();
   if (remaining.length > 0) {
     setActiveProfileId(remaining[0].id);
     return remaining[0];
   }
-  const profile = createLocalProfile("Me");
-  setActiveProfileId(profile.id);
-  return profile;
+  return replaceActiveProfileWithFresh("Me");
 }

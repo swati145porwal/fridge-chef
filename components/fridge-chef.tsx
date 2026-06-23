@@ -9,8 +9,6 @@ import { NutritionTrackerScreen } from "./nutrition-tracker";
 import { Onboarding } from "./onboarding";
 import { useProfile } from "./profile-provider";
 import {
-  clearProfileData,
-  eraseAllProfileStorage,
   getActiveProfileId,
   profileStorageKey,
   writeProfileStorageSnapshot,
@@ -4808,7 +4806,7 @@ function GroceryOrderScreen({
 
 /* ─── Main App Component ─── */
 export default function FridgeChef() {
-  const { activeProfile, updateActiveProfile, signOut, deleteProfile } = useProfile();
+  const { activeProfile, updateActiveProfile, signOut, deleteProfile, replaceWithFreshProfile } = useProfile();
   const profileId = activeProfile?.id ?? "";
 
   const [screen, setScreen] = useState("home");
@@ -4959,33 +4957,32 @@ export default function FridgeChef() {
         }
       }}
       onClearAll={() => {
-        if (!profileId) return;
         if (!window.confirm("Clear all data for this profile? Your ingredients, history, and preferences will be reset.")) {
           return;
         }
         skipProfilePersist.current = true;
-        eraseAllProfileStorage(profileId);
-        updateActiveProfile({ onboarded: false });
-        setHistory([]);
-        setCookList([]);
-        setSelected([]);
-        setMatched([]);
-        setIngNames([]);
-        setPrefs(DEFAULT_PREFS);
-        setDetail(null);
-        setScreen("home");
-        setShowOnboarding(true);
-        setResultsKey((k) => k + 1);
-        writeProfileStorageSnapshot(profileId, {
+        const freshProfile = replaceWithFreshProfile(activeProfile?.name || "Me");
+        const freshId = freshProfile.id;
+        writeProfileStorageSnapshot(freshId, {
           prefs: DEFAULT_PREFS,
           selected: [],
           history: [],
           cook: [],
           onboarded: false,
         });
+        setHistory([]);
+        setCookList([]);
+        setSelected([]);
+        setMatched([]);
+        setIngNames([]);
+        setPrefs({ ...DEFAULT_PREFS, macroTargets: { ...DEFAULT_PREFS.macroTargets } });
+        setDetail(null);
+        setScreen("home");
+        setShowOnboarding(true);
+        setResultsKey((k) => k + 1);
         window.setTimeout(() => {
           skipProfilePersist.current = false;
-        }, 0);
+        }, 300);
       }}
       onSwitchProfile={() => signOut()}
       onSignOut={() => signOut()}
@@ -5008,12 +5005,15 @@ export default function FridgeChef() {
     spice: string[];
     name: string;
   }) => {
-    setPrefs((prev) => ({
-      ...prev,
+    const nextPrefs: Prefs = {
+      ...DEFAULT_PREFS,
       ...onboardingPrefs,
-    }));
+      macroTargets: { ...DEFAULT_PREFS.macroTargets },
+    };
+    setPrefs(nextPrefs);
     if (profileId) {
       localStorage.setItem(profileStorageKey(profileId, "onboarded"), "true");
+      localStorage.setItem(profileStorageKey(profileId, "prefs"), JSON.stringify(nextPrefs));
     }
     updateActiveProfile({ onboarded: true, name: onboardingPrefs.name || activeProfile?.name || "Me" });
     setShowOnboarding(false);

@@ -20,6 +20,7 @@ import {
   isSupabaseConfigured,
   listProfiles,
   migrateLegacyStorage,
+  replaceActiveProfileWithFresh,
   removeProfile,
   saveProfile,
   setActiveProfileId,
@@ -37,6 +38,7 @@ interface ProfileContextValue {
   signUpWithEmail: (name: string, email: string, password: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
   deleteProfile: (id: string) => void;
+  replaceWithFreshProfile: (name?: string) => UserProfile;
   updateActiveProfile: (patch: Partial<UserProfile>) => void;
   refreshProfiles: () => void;
 }
@@ -207,6 +209,13 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     setProfiles(listProfiles());
   }, []);
 
+  const replaceWithFreshProfile = useCallback((name?: string) => {
+    const profile = replaceActiveProfileWithFresh(name);
+    setActiveProfile(profile);
+    setProfiles(listProfiles());
+    return profile;
+  }, []);
+
   const updateActiveProfile = useCallback((patch: Partial<UserProfile>) => {
     const activeId = getActiveProfileId();
     if (!activeId) return;
@@ -230,6 +239,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       signUpWithEmail,
       signOut,
       deleteProfile,
+      replaceWithFreshProfile,
       updateActiveProfile,
       refreshProfiles,
     }),
@@ -244,6 +254,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       signUpWithEmail,
       signOut,
       deleteProfile,
+      replaceWithFreshProfile,
       updateActiveProfile,
       refreshProfiles,
     ],
