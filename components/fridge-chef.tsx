@@ -2207,23 +2207,6 @@ function FridgeScreen({
               </svg>
             </button>
           ))}
-          <button
-            onClick={() => setSelected([])}
-            className="tap"
-            style={{
-              background: T.card2,
-              color: T.textSub,
-              fontSize: 12,
-              padding: "6px 12px",
-              border: `1px solid ${T.border}`,
-              borderRadius: 8,
-              cursor: "pointer",
-              fontFamily: "inherit",
-              fontWeight: 500,
-            }}
-          >
-            Clear all
-          </button>
         </div>
       )}
 
@@ -2294,6 +2277,82 @@ function FridgeScreen({
         ))}
       </div>
 
+      {/* Find Recipes + Clear — sticky so it stays reachable while scrolling ingredients */}
+      <div
+        style={{
+          position: "sticky",
+          top: "calc(56px + env(safe-area-inset-top, 0px))",
+          zIndex: 30,
+          display: "flex",
+          gap: 8,
+          marginBottom: 14,
+          paddingBottom: 4,
+          background: `linear-gradient(to bottom, ${T.bg} 85%, transparent)`,
+        }}
+      >
+        <button
+          onClick={() => selNames.length && onResults(matchFridge(selNames, prefs), selNames)}
+          className="tap card-hover"
+          style={{
+            flex: 1,
+            background: selNames.length
+              ? `linear-gradient(135deg, ${T.accent} 0%, #78350f 100%)`
+              : T.card2,
+            color: selNames.length ? "#fff" : T.textSub,
+            border: selNames.length ? "none" : `1.5px solid ${T.border}`,
+            borderRadius: 12,
+            padding: "12px 16px",
+            fontSize: 14,
+            fontWeight: 700,
+            cursor: selNames.length ? "pointer" : "not-allowed",
+            fontFamily: "inherit",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            boxShadow: selNames.length
+              ? "0 6px 20px -6px rgba(234, 88, 12, 0.45)"
+              : "var(--fc-shadow-sm)",
+          }}
+        >
+          {selNames.length ? (
+            <>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              Find Recipes ({selNames.length})
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <polyline points="9,18 15,12 9,6" />
+              </svg>
+            </>
+          ) : (
+            "Select ingredients to find recipes"
+          )}
+        </button>
+        {cleanSelected.length > 0 && (
+          <button
+            onClick={() => setSelected([])}
+            className="tap"
+            style={{
+              flexShrink: 0,
+              background: T.card,
+              color: T.textSub,
+              fontSize: 13,
+              fontWeight: 600,
+              padding: "12px 14px",
+              border: `1.5px solid ${T.border}`,
+              borderRadius: 12,
+              cursor: "pointer",
+              fontFamily: "inherit",
+              boxShadow: "var(--fc-shadow-sm)",
+            }}
+          >
+            Clear all
+          </button>
+        )}
+      </div>
+
       {/* Ingredient Grid */}
       <div className="ing-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(90px, 1fr))", gap: 10, marginBottom: 20 }}>
         {rows.map((ing) => (
@@ -2306,48 +2365,6 @@ function FridgeScreen({
           No ingredients found for &quot;{q}&quot;
         </div>
       )}
-
-      {/* Find Recipes CTA */}
-      <button
-        onClick={() => selNames.length && onResults(matchFridge(selNames, prefs), selNames)}
-        className="tap card-hover"
-        style={{
-          width: "100%",
-          background: selNames.length 
-            ? `linear-gradient(135deg, ${T.accent} 0%, #78350f 100%)` 
-            : T.card2,
-          color: selNames.length ? "#fff" : T.textSub,
-          border: "none",
-          borderRadius: 14,
-          padding: "16px 20px",
-          fontSize: 15,
-          fontWeight: 600,
-          cursor: selNames.length ? "pointer" : "not-allowed",
-          fontFamily: "inherit",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 10,
-          boxShadow: selNames.length 
-            ? "0 8px 24px -8px rgba(234, 88, 12, 0.5)" 
-            : "var(--fc-shadow-sm)",
-        }}
-      >
-        {selNames.length ? (
-          <>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            Find Recipes
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <polyline points="9,18 15,12 9,6" />
-            </svg>
-          </>
-        ) : (
-          "Select at least one ingredient"
-        )}
-      </button>
     </div>
   );
 }
