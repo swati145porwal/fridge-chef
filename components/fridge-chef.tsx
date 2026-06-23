@@ -10,6 +10,7 @@ import { Onboarding } from "./onboarding";
 import { useProfile } from "./profile-provider";
 import {
   clearProfileData,
+  eraseAllProfileStorage,
   getActiveProfileId,
   profileStorageKey,
   writeProfileStorageSnapshot,
@@ -637,6 +638,8 @@ const DB: Recipe[] = [
   { id: 208, name: "Kootu", core: "Toor Dal", diet: "vegan", meal: ["lunch", "dinner"], cuisines: ["south"], allergens: [], avoid: ["Coconut"], health: ["protein", "fiber"], time: "25 min", cal: 180, desc: "Lentils and vegetables in coconut gravy — Tamil Nadu staple.", pairing: "Steamed rice + rasam + papad", steps: ["Cook dal and vegetables together till soft", "Grind coconut, cumin, pepper to paste", "Add coconut paste to dal-vegetable mix", "Simmer 5 minutes till flavours blend", "Temper with mustard, curry leaves, dry chilli"], ytQ: "kootu recipe tamil" },
   { id: 209, name: "Aviyal", core: "Coconut (Fresh)", diet: "vegan", meal: ["lunch", "dinner"], cuisines: ["south", "kerala"], allergens: [], avoid: ["Coconut", "Curd"], health: ["fiber", "lowoil"], time: "25 min", cal: 200, desc: "Mixed vegetables in coconut-curd gravy — Kerala Onam sadya essential.", pairing: "Rice + sambar + rasam", steps: ["Cut vegetables into long strips", "Cook in minimal water with turmeric, salt", "Grind coconut, cumin, green chilli to coarse paste", "Add paste to vegetables, mix gently", "Add curd, curry leaves, drizzle coconut oil"], ytQ: "aviyal recipe kerala" },
   { id: 210, name: "Thoran", core: "Cabbage", diet: "vegan", meal: ["lunch", "dinner"], cuisines: ["south", "kerala"], allergens: [], avoid: ["Coconut", "Mustard Seeds"], health: ["fiber", "lowoil", "diabetic"], time: "15 min", cal: 120, desc: "Dry stir-fried vegetables with coconut — Kerala everyday side dish.", pairing: "Rice + sambar + fish curry", steps: ["Finely chop vegetables", "Temper mustard, urad dal, curry leaves, dry chilli", "Add vegetables, turmeric, salt — cook covered", "Add grated coconut when almost done", "Toss well, cook 2 more minutes uncovered"], ytQ: "thoran recipe kerala" },
+  { id: 215, name: "Kathal Ki Sabzi", core: "Raw Jackfruit", diet: "vegan", meal: ["lunch", "dinner"], cuisines: ["north", "bengali"], allergens: [], avoid: ["Onion", "Garlic", "Tomato"], health: ["fiber", "lowoil"], time: "35 min", cal: 220, desc: "Young jackfruit cooked with spices until tender — a hearty vegan substitute for meat.", pairing: "Roti + dal + kachumber", steps: ["Oil hands, cut raw jackfruit, boil till tender", "Heat oil, crackle cumin, sauté onion till golden", "Add ginger-garlic, tomato, spices — cook till oil separates", "Add boiled jackfruit pieces, coat in masala", "Simmer 12 min with water, finish with garam masala"], ytQ: "kathal ki sabzi recipe" },
+  { id: 216, name: "Echorer Dalna", core: "Raw Jackfruit", diet: "vegan", meal: ["lunch", "dinner"], cuisines: ["bengali"], allergens: [], avoid: ["Onion", "Garlic", "Potato"], health: ["fiber"], time: "40 min", cal: 260, desc: "Bengali-style jackfruit and potato curry — festive and deeply flavourful.", pairing: "Steamed rice + begun bhaja", steps: ["Cut jackfruit, boil with turmeric and salt", "Fry potato cubes till golden", "Make ginger-cumin paste, sauté with bay leaf", "Add jackfruit, potato, cumin-coriander, green chilli", "Simmer till gravy thickens, finish with ghee and garam masala"], ytQ: "echorer dalna bengali recipe" },
   { id: 211, name: "Olan", core: "Coconut Milk", diet: "vegan", meal: ["lunch", "dinner"], cuisines: ["south", "kerala"], allergens: [], avoid: ["Coconut"], health: ["lowoil"], time: "20 min", cal: 180, desc: "Ash gourd and cowpeas in thin coconut milk — subtle and elegant.", pairing: "Rice + sambar + thoran", steps: ["Soak and cook cowpeas till soft", "Cut ash gourd into cubes", "Cook ash gourd in thin coconut milk with salt", "Add cooked cowpeas, green chillies slit", "Finish with thick coconut milk, curry leaves"], ytQ: "olan recipe kerala onam" },
   { id: 212, name: "Bisi Bele Bath", core: "Basmati Rice", diet: "veg", meal: ["lunch", "dinner"], cuisines: ["south", "karnataka"], allergens: ["dairy"], avoid: ["Tamarind"], health: ["protein", "fiber"], time: "30 min", cal: 350, desc: "Spiced rice-lentil-vegetable one-pot — Karnataka's beloved comfort food.", pairing: "Boondi raita + papad + pickle", steps: ["Cook rice and toor dal together till mushy", "Cook mixed vegetables separately", "Make bisi bele bath powder or use ready masala", "Mix rice-dal, vegetables, tamarind extract, spice powder", "Temper with ghee, mustard, curry leaves — serve hot"], ytQ: "bisi bele bath recipe karnataka" },
   { id: 213, name: "Puliyodarai (Tamarind Rice)", core: "Basmati Rice", diet: "vegan", meal: ["lunch"], cuisines: ["south"], allergens: ["nuts"], avoid: ["Tamarind", "Peanuts"], health: ["fiber"], time: "20 min", cal: 280, desc: "Tangy tamarind rice with aromatic spices — temple prasadam favourite.", pairing: "Papad + curd + pickle", steps: ["Cook rice and cool completely, spread out", "Make puliyodarai paste: tamarind, jaggery, spices, oil", "Temper mustard, peanuts, chana dal, curry leaves", "Mix paste and tempering with cooled rice", "Sesame oil is essential for authentic flavour"], ytQ: "puliyodarai recipe temple style" },
@@ -708,6 +711,41 @@ function filterDB(prefs: Prefs): Recipe[] {
     .sort((a, b) => (b.score || 0) - (a.score || 0));
 }
 
+function normalizeIngredientName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/\([^)]*\)/g, "")
+    .replace(/^(raw|fresh|frozen|ripe|green|tender)\s+/i, "")
+    .trim();
+}
+
+function ingredientTokens(name: string): string[] {
+  return normalizeIngredientName(name).split(/\s+/).filter((t) => t.length > 2);
+}
+
+function scoreIngredientRecipeMatch(recipe: Recipe, selectedName: string): number {
+  const selNorm = normalizeIngredientName(selectedName);
+  const coreNorm = normalizeIngredientName(recipe.core);
+  if (!selNorm) return 0;
+
+  if (selNorm === coreNorm || selNorm.includes(coreNorm) || coreNorm.includes(selNorm)) return 6;
+
+  const selTokens = ingredientTokens(selectedName);
+  const coreTokens = ingredientTokens(recipe.core);
+  const tokenHits = selTokens.filter((t) =>
+    coreTokens.some((c) => c.includes(t) || t.includes(c)),
+  ).length;
+  if (tokenHits > 0) return 4 + tokenHits;
+
+  const nameNorm = recipe.name.toLowerCase();
+  if (nameNorm.includes(selNorm) || selTokens.some((t) => nameNorm.includes(t))) return 3;
+
+  const stepText = recipe.steps.join(" ").toLowerCase();
+  if (selTokens.some((t) => stepText.includes(t))) return 2;
+
+  return 0;
+}
+
 function matchFridge(selNames: string[], prefs: Prefs): Recipe[] {
   const allergies = prefs.allergies || [];
   const dislikes = prefs.dislikes || [];
@@ -715,26 +753,19 @@ function matchFridge(selNames: string[], prefs: Prefs): Recipe[] {
   const health = prefs.health || [];
   const macros = prefs.macroTargets || { goal: "none", calories: 0, protein: 0, carbs: 0, fat: 0 };
 
-  const has = (t: string) =>
-    selNames.some(
-      (s) =>
-        s.toLowerCase().includes(t.toLowerCase()) ||
-        t.toLowerCase().includes(s.toLowerCase())
-    );
-  
   return DB.filter((r) => {
     if (r.allergens.some((a) => allergies.includes(a))) return false;
     if (r.avoid.some((a) => dislikes.includes(a))) return false;
-    return has(r.core);
+    return selNames.some((name) => scoreIngredientRecipeMatch(r, name) > 0);
   })
     .map((r) => {
-      const coreMatch    = has(r.core) ? 5 : 0;
+      const ingredientScore = Math.max(...selNames.map((name) => scoreIngredientRecipeMatch(r, name)), 0);
       const cuisineScore = cuisine.filter((c) => r.cuisines.includes(c)).length * 2;
-      const healthScore  = health.filter((h) => r.health.includes(h)).length;
-      const macroScore   = macroFitScore(r, macros);
+      const healthScore = health.filter((h) => r.health.includes(h)).length;
+      const macroScore = macroFitScore(r, macros);
       return {
         ...r,
-        score: coreMatch + cuisineScore + healthScore + macroScore,
+        score: ingredientScore + cuisineScore + healthScore + macroScore,
       };
     })
     .sort((a, b) => (b.score || 0) - (a.score || 0));
@@ -2143,11 +2174,13 @@ function FridgeScreen({
   setSelected,
   prefs,
   onResults,
+  onClearSelection,
 }: {
   selected: number[];
   setSelected: React.Dispatch<React.SetStateAction<number[]>>;
   prefs: Prefs;
   onResults: (matched: Recipe[], names: string[]) => void;
+  onClearSelection: () => void;
 }) {
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("All");
@@ -2367,7 +2400,7 @@ function FridgeScreen({
         </button>
         {cleanSelected.length > 0 && (
           <button
-            onClick={() => setSelected([])}
+            onClick={onClearSelection}
             className="tap"
             style={{
               flexShrink: 0,
@@ -3102,55 +3135,6 @@ function ResultsScreen({
 
   const activeFilters = [timeFilter, calFilter, mealFilter].filter((f) => f !== "all").length;
 
-  if (!matched.length)
-    return (
-      <div className="fa">
-        <BackBtn onClick={onBack} />
-        <div
-          style={{
-            background: T.card,
-            borderRadius: 8,
-            padding: "2rem 1.5rem",
-            border: `1px solid ${T.border}`,
-            textAlign: "center",
-          }}
-        >
-          <p
-            style={{
-              fontFamily: "var(--font-cormorant), serif",
-              fontSize: 20,
-              fontWeight: 700,
-              color: T.text,
-              marginBottom: 8,
-            }}
-          >
-            No recipes found
-          </p>
-          <p style={{ color: T.textSub, fontSize: 13, lineHeight: 1.7, marginBottom: 18 }}>
-            No recipes match your selection and dietary profile. Try adjusting your allergies or dislikes in
-            Profile.
-          </p>
-          <button
-            onClick={() => yt(ingNames.join(" ") + " recipe")}
-            className="tap"
-            style={{
-              background: "#180808",
-              color: "#e05040",
-              border: "1px solid #c0000025",
-              borderRadius: 5,
-              padding: "10px 20px",
-              fontSize: 13,
-              fontWeight: 500,
-              cursor: "pointer",
-              fontFamily: "inherit",
-            }}
-          >
-            Search on YouTube instead
-          </button>
-        </div>
-      </div>
-    );
-
   return (
     <div className="fa">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
@@ -3163,7 +3147,9 @@ function ResultsScreen({
               color: T.text,
             }}
           >
-            {matched.length} recipe{matched.length > 1 ? "s" : ""} found
+            {allRecipes.length > 0
+              ? `${allRecipes.length} recipe${allRecipes.length > 1 ? "s" : ""} found`
+              : "No recipes found"}
           </p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 5 }}>
             {ingNames.map((n, i) => (
@@ -3172,6 +3158,11 @@ function ResultsScreen({
               </Tag>
             ))}
           </div>
+          {matched.length === 0 && allRecipes.length === 0 && (
+            <p style={{ color: T.textSub, fontSize: 12, lineHeight: 1.6, marginTop: 8 }}>
+              No curated recipes match these ingredients yet. Try AI generate below or search YouTube.
+            </p>
+          )}
         </div>
         <button
           onClick={onBack}
@@ -3191,6 +3182,28 @@ function ResultsScreen({
           Change
         </button>
       </div>
+
+      {matched.length === 0 && allRecipes.length === 0 && (
+        <button
+          onClick={() => yt(ingNames.join(" ") + " recipe")}
+          className="tap"
+          style={{
+            width: "100%",
+            background: "#180808",
+            color: "#e05040",
+            border: "1px solid #c0000025",
+            borderRadius: 8,
+            padding: "10px 20px",
+            fontSize: 13,
+            fontWeight: 500,
+            cursor: "pointer",
+            fontFamily: "inherit",
+            marginBottom: 14,
+          }}
+        >
+          Search on YouTube instead
+        </button>
+      )}
 
       {/* Search and Filter Bar */}
       <div style={{ marginBottom: 14 }}>
@@ -4808,19 +4821,19 @@ export default function FridgeChef() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [cookList, setCookList] = useState<number[]>([]);
+  const [resultsKey, setResultsKey] = useState(0);
+  const skipProfilePersist = useRef(false);
 
-  // Load persisted state for the active profile
+  // Load persisted state when the active profile changes
   useEffect(() => {
     if (!profileId) return;
     setIsLoaded(false);
     try {
-      const onboarded = localStorage.getItem(profileStorageKey(profileId, "onboarded"));
       const savedPrefs = localStorage.getItem(profileStorageKey(profileId, "prefs"));
       const savedSel = localStorage.getItem(profileStorageKey(profileId, "sel"));
       const savedHist = localStorage.getItem(profileStorageKey(profileId, "hist"));
       const savedCook = localStorage.getItem(profileStorageKey(profileId, "cook"));
 
-      setShowOnboarding(onboarded !== "true" && activeProfile?.onboarded !== true);
       setPrefs(savedPrefs ? { ...DEFAULT_PREFS, ...JSON.parse(savedPrefs) } : DEFAULT_PREFS);
       setSelected(savedSel ? JSON.parse(savedSel) : []);
       setHistory(savedHist ? JSON.parse(savedHist) : []);
@@ -4829,6 +4842,7 @@ export default function FridgeChef() {
       setIngNames([]);
       setDetail(null);
       setScreen("home");
+      setResultsKey((k) => k + 1);
     } catch {
       setPrefs(DEFAULT_PREFS);
       setSelected([]);
@@ -4836,35 +4850,41 @@ export default function FridgeChef() {
       setCookList([]);
     }
     setIsLoaded(true);
-  }, [profileId, activeProfile?.onboarded]);
+  }, [profileId]);
 
   useEffect(() => {
-    if (!profileId) return;
+    if (!profileId || !isLoaded) return;
+    const onboarded = localStorage.getItem(profileStorageKey(profileId, "onboarded"));
+    setShowOnboarding(onboarded !== "true" && activeProfile?.onboarded !== true);
+  }, [profileId, isLoaded, activeProfile?.onboarded]);
+
+  useEffect(() => {
+    if (!profileId || !isLoaded || skipProfilePersist.current) return;
     try {
       localStorage.setItem(profileStorageKey(profileId, "prefs"), JSON.stringify(prefs));
     } catch {}
-  }, [prefs, profileId]);
+  }, [prefs, profileId, isLoaded]);
 
   useEffect(() => {
-    if (!profileId) return;
+    if (!profileId || !isLoaded || skipProfilePersist.current) return;
     try {
       localStorage.setItem(profileStorageKey(profileId, "sel"), JSON.stringify(selected));
     } catch {}
-  }, [selected, profileId]);
+  }, [selected, profileId, isLoaded]);
 
   useEffect(() => {
-    if (!profileId) return;
+    if (!profileId || !isLoaded || skipProfilePersist.current) return;
     try {
       localStorage.setItem(profileStorageKey(profileId, "hist"), JSON.stringify(history));
     } catch {}
-  }, [history, profileId]);
+  }, [history, profileId, isLoaded]);
 
   useEffect(() => {
-    if (!profileId) return;
+    if (!profileId || !isLoaded || skipProfilePersist.current) return;
     try {
       localStorage.setItem(profileStorageKey(profileId, "cook"), JSON.stringify(cookList));
     } catch {}
-  }, [cookList, profileId]);
+  }, [cookList, profileId, isLoaded]);
 
   const toggleCookList = (id: number) =>
     setCookList((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
@@ -4872,8 +4892,19 @@ export default function FridgeChef() {
   const goResults = (m: Recipe[], names: string[]) => {
     setMatched(m);
     setIngNames(names);
+    setResultsKey((k) => k + 1);
     setHistory((h) => [...h.slice(-9), { ingredients: names, count: m.length, ts: Date.now() }]);
     setScreen("results");
+  };
+
+  const clearIngredientSelection = () => {
+    setSelected([]);
+    setMatched([]);
+    setIngNames([]);
+    setResultsKey((k) => k + 1);
+    if (profileId) {
+      localStorage.setItem(profileStorageKey(profileId, "sel"), "[]");
+    }
   };
 
   const navTo = (s: string) => {
@@ -4894,9 +4925,21 @@ export default function FridgeChef() {
   } else if (screen === "home") {
     content = <HomeScreen prefs={prefs} history={history} onFridge={() => navTo("fridge")} onPlan={() => navTo("plan")} onShopping={() => navTo("shopping")} onNutrition={() => navTo("nutrition")} cookList={cookList} onGrocery={() => navTo("grocery")} />;
   } else if (screen === "fridge") {
-    content = <FridgeScreen selected={selected} setSelected={setSelected} prefs={prefs} onResults={goResults} />;
+    content = <FridgeScreen selected={selected} setSelected={setSelected} prefs={prefs} onResults={goResults} onClearSelection={clearIngredientSelection} />;
   } else if (screen === "results") {
-    content = <ResultsScreen matched={matched} ingNames={ingNames} prefs={prefs} onOpen={setDetail} onBack={() => navTo("fridge")} cookList={cookList} onToggleCook={toggleCookList} onGrocery={() => navTo("grocery")} />;
+    content = (
+      <ResultsScreen
+        key={resultsKey}
+        matched={matched}
+        ingNames={ingNames}
+        prefs={prefs}
+        onOpen={setDetail}
+        onBack={() => navTo("fridge")}
+        cookList={cookList}
+        onToggleCook={toggleCookList}
+        onGrocery={() => navTo("grocery")}
+      />
+    );
   } else if (screen === "plan") {
     content = <PlanScreen prefs={prefs} />;
   } else if (screen === "profile") {
@@ -4917,7 +4960,11 @@ export default function FridgeChef() {
       }}
       onClearAll={() => {
         if (!profileId) return;
-        clearProfileData(profileId);
+        if (!window.confirm("Clear all data for this profile? Your ingredients, history, and preferences will be reset.")) {
+          return;
+        }
+        skipProfilePersist.current = true;
+        eraseAllProfileStorage(profileId);
         updateActiveProfile({ onboarded: false });
         setHistory([]);
         setCookList([]);
@@ -4928,6 +4975,7 @@ export default function FridgeChef() {
         setDetail(null);
         setScreen("home");
         setShowOnboarding(true);
+        setResultsKey((k) => k + 1);
         writeProfileStorageSnapshot(profileId, {
           prefs: DEFAULT_PREFS,
           selected: [],
@@ -4935,6 +4983,9 @@ export default function FridgeChef() {
           cook: [],
           onboarded: false,
         });
+        window.setTimeout(() => {
+          skipProfilePersist.current = false;
+        }, 0);
       }}
       onSwitchProfile={() => signOut()}
       onSignOut={() => signOut()}

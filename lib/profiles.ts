@@ -153,10 +153,28 @@ export function migrateLegacyStorage(profileId: string) {
   }
 }
 
-export function clearProfileData(profileId: string) {
-  profileSuffixes().forEach((suffix) => {
-    localStorage.removeItem(profileStorageKey(profileId, suffix));
-  });
+export function clearLegacyStorageKeys() {
+  if (typeof window === "undefined") return;
+  [
+    "fc5-prefs",
+    "fc5-sel",
+    "fc5-hist",
+    "fc5-cook",
+    "fc5-onboarded",
+    "openai_api_key",
+    "fridgechef.cookVoiceLang",
+  ].forEach((key) => localStorage.removeItem(key));
+}
+
+export function eraseAllProfileStorage(profileId: string) {
+  clearProfileData(profileId);
+  clearLegacyStorageKeys();
+  if (typeof window === "undefined") return;
+  const prefix = `fc6-${profileId}-`;
+  for (let i = localStorage.length - 1; i >= 0; i--) {
+    const key = localStorage.key(i);
+    if (key?.startsWith(prefix)) localStorage.removeItem(key);
+  }
 }
 
 /** Write a clean storage snapshot after in-memory state has been reset. */
