@@ -11,6 +11,7 @@ import {
 } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
+  activateFallbackProfile,
   clearActiveProfileId,
   createAccountProfile,
   createLocalProfile,
@@ -197,10 +198,11 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   }, [supabaseEnabled]);
 
   const deleteProfile = useCallback((id: string) => {
+    const wasActive = getActiveProfileId() === id;
     removeProfile(id);
-    if (getActiveProfileId() === id) {
-      clearActiveProfileId();
-      setActiveProfile(null);
+    if (wasActive) {
+      const next = activateFallbackProfile();
+      setActiveProfile(next);
     }
     setProfiles(listProfiles());
   }, []);

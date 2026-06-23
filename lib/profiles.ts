@@ -158,3 +158,37 @@ export function clearProfileData(profileId: string) {
     localStorage.removeItem(profileStorageKey(profileId, suffix));
   });
 }
+
+/** Write a clean storage snapshot after in-memory state has been reset. */
+export function writeProfileStorageSnapshot(
+  profileId: string,
+  snapshot: {
+    prefs: unknown;
+    selected: number[];
+    history: unknown[];
+    cook: number[];
+    onboarded?: boolean;
+  },
+) {
+  localStorage.setItem(profileStorageKey(profileId, "prefs"), JSON.stringify(snapshot.prefs));
+  localStorage.setItem(profileStorageKey(profileId, "sel"), JSON.stringify(snapshot.selected));
+  localStorage.setItem(profileStorageKey(profileId, "hist"), JSON.stringify(snapshot.history));
+  localStorage.setItem(profileStorageKey(profileId, "cook"), JSON.stringify(snapshot.cook));
+  if (snapshot.onboarded) {
+    localStorage.setItem(profileStorageKey(profileId, "onboarded"), "true");
+  } else {
+    localStorage.removeItem(profileStorageKey(profileId, "onboarded"));
+  }
+  localStorage.removeItem(profileStorageKey(profileId, "openai_api_key"));
+}
+
+export function activateFallbackProfile(): UserProfile {
+  const remaining = listProfiles();
+  if (remaining.length > 0) {
+    setActiveProfileId(remaining[0].id);
+    return remaining[0];
+  }
+  const profile = createLocalProfile("Me");
+  setActiveProfileId(profile.id);
+  return profile;
+}

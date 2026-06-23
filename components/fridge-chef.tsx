@@ -12,6 +12,7 @@ import {
   clearProfileData,
   getActiveProfileId,
   profileStorageKey,
+  writeProfileStorageSnapshot,
 } from "@/lib/profiles";
 import {
   formatAllLanguagesPlanDayWA,
@@ -1377,6 +1378,7 @@ function ProfileScreen({
   prefs,
   setPrefs,
   onClearHistory,
+  onResetPreferences,
   onClearAll,
   onSwitchProfile,
   onSignOut,
@@ -1385,6 +1387,7 @@ function ProfileScreen({
   prefs: Prefs;
   setPrefs: React.Dispatch<React.SetStateAction<Prefs>>;
   onClearHistory: () => void;
+  onResetPreferences: () => void;
   onClearAll: () => void;
   onSwitchProfile: () => void;
   onSignOut: () => void;
@@ -2080,7 +2083,7 @@ function ProfileScreen({
             label: "Reset All Preferences",
             desc: "Restore diet, cuisine & health defaults",
             icon: "↩️",
-            action: () => setPrefs(DEFAULT_PREFS),
+            action: onResetPreferences,
             danger: false,
           },
           {
@@ -4817,7 +4820,7 @@ export default function FridgeChef() {
       const savedHist = localStorage.getItem(profileStorageKey(profileId, "hist"));
       const savedCook = localStorage.getItem(profileStorageKey(profileId, "cook"));
 
-      setShowOnboarding(onboarded !== "true" && !activeProfile?.onboarded);
+      setShowOnboarding(onboarded !== "true" && activeProfile?.onboarded !== true);
       setPrefs(savedPrefs ? { ...DEFAULT_PREFS, ...JSON.parse(savedPrefs) } : DEFAULT_PREFS);
       setSelected(savedSel ? JSON.parse(savedSel) : []);
       setHistory(savedHist ? JSON.parse(savedHist) : []);
@@ -4902,15 +4905,36 @@ export default function FridgeChef() {
       setPrefs={setPrefs}
       onClearHistory={() => {
         setHistory([]);
-        if (profileId) localStorage.removeItem(profileStorageKey(profileId, "hist"));
+        if (profileId) {
+          localStorage.setItem(profileStorageKey(profileId, "hist"), "[]");
+        }
+      }}
+      onResetPreferences={() => {
+        setPrefs(DEFAULT_PREFS);
+        if (profileId) {
+          localStorage.setItem(profileStorageKey(profileId, "prefs"), JSON.stringify(DEFAULT_PREFS));
+        }
       }}
       onClearAll={() => {
+        if (!profileId) return;
+        clearProfileData(profileId);
+        updateActiveProfile({ onboarded: false });
         setHistory([]);
         setCookList([]);
         setSelected([]);
+        setMatched([]);
+        setIngNames([]);
         setPrefs(DEFAULT_PREFS);
-        if (profileId) clearProfileData(profileId);
+        setDetail(null);
+        setScreen("home");
         setShowOnboarding(true);
+        writeProfileStorageSnapshot(profileId, {
+          prefs: DEFAULT_PREFS,
+          selected: [],
+          history: [],
+          cook: [],
+          onboarded: false,
+        });
       }}
       onSwitchProfile={() => signOut()}
       onSignOut={() => signOut()}
