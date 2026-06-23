@@ -13,6 +13,11 @@ import {
   getActiveProfileId,
   profileStorageKey,
 } from "@/lib/profiles";
+import {
+  formatAllLanguagesPlanDayWA,
+  formatAllLanguagesRecipeWA,
+} from "@/lib/cook-voice-languages";
+import { CookVoiceNotePanel } from "./cook-voice-note-panel";
 import { RecipeImageHeader, RecipeImageThumb } from "./recipe-image-header";
 
 /* ─── Design Tokens (CSS Variables for Light/Dark support) ─── */
@@ -50,6 +55,11 @@ const ig = (q: string) =>
   openLink(`https://www.instagram.com/explore/search/keyword/?q=${encodeURIComponent(q)}`);
 const ytCh = (h: string) => openLink(`https://www.youtube.com/@${h}`);
 
+function ytSearchLink(r: Recipe): string {
+  const q = r.ytQ || `${r.name} recipe`;
+  return `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`;
+}
+
 /* ─── WhatsApp Helpers ─── */
 function sendToWhatsApp(message: string) {
   // Opens WhatsApp contact picker with pre-filled message — no API key needed
@@ -59,7 +69,7 @@ function sendToWhatsApp(message: string) {
 function formatRecipeForWA(r: Recipe): string {
   const dietLabel = r.diet === "vegan" ? "🌱 Vegan" : r.diet === "veg" ? "🥗 Vegetarian" : r.diet === "egget" ? "🥚 Eggetarian" : "🍗 Non-Veg";
   const cuisineLabels = r.cuisines.map((c) => PREF.cuisine.find((x) => x.id === c)?.label || c).join(" · ");
-  const ytLink = `https://www.youtube.com/results?search_query=${encodeURIComponent(r.name + " recipe")}`;
+  const ytLink = ytSearchLink(r);
   let msg = `🍛 *${r.name}*\n`;
   msg += `${dietLabel} · ${cuisineLabels}\n`;
   msg += `⏱ ${r.time}  |  🔥 ${r.cal} kcal\n`;
@@ -69,6 +79,7 @@ function formatRecipeForWA(r: Recipe): string {
   }
   if (r.pairing) msg += `\n🍽 *Pairs with:* ${r.pairing}`;
   msg += `\n\n▶️ *Watch on YouTube:*\n${ytLink}`;
+  msg += formatAllLanguagesRecipeWA(r);
   msg += `\n\n_Sent via FridgeChef India_ 🍛`;
   return msg;
 }
@@ -76,9 +87,30 @@ function formatRecipeForWA(r: Recipe): string {
 function formatPlanDayForWA(day: { full: string; breakfast: Recipe | null; lunch: Recipe | null; dinner: Recipe | null }): string {
   const date = new Date().toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "short" });
   let msg = `📋 *Today's Menu — ${date}*\n\n`;
-  if (day.breakfast) msg += `🌅 *Breakfast:* ${day.breakfast.name} (${day.breakfast.time})\n`;
-  if (day.lunch)     msg += `☀️ *Lunch:* ${day.lunch.name} (${day.lunch.time})\n`;
-  if (day.dinner)    msg += `🌙 *Dinner:* ${day.dinner.name} (${day.dinner.time})\n`;
+  const meals: Array<{ emoji: string; r: Recipe }> = [];
+  if (day.breakfast) {
+    msg += `🌅 *Breakfast:* ${day.breakfast.name} (${day.breakfast.time})\n`;
+    meals.push({ emoji: "🌅", r: day.breakfast });
+  }
+  if (day.lunch) {
+    msg += `☀️ *Lunch:* ${day.lunch.name} (${day.lunch.time})\n`;
+    meals.push({ emoji: "☀️", r: day.lunch });
+  }
+  if (day.dinner) {
+    msg += `🌙 *Dinner:* ${day.dinner.name} (${day.dinner.time})\n`;
+    meals.push({ emoji: "🌙", r: day.dinner });
+  }
+  if (meals.length) {
+    msg += `\n▶️ *Watch on YouTube:*\n`;
+    meals.forEach(({ emoji, r }) => {
+      msg += `${emoji} ${r.name}: ${ytSearchLink(r)}\n`;
+    });
+  }
+  msg += formatAllLanguagesPlanDayWA({
+    breakfast: day.breakfast,
+    lunch: day.lunch,
+    dinner: day.dinner,
+  });
   msg += `\n_Sent via FridgeChef India_ 🍛`;
   return msg;
 }
@@ -2743,9 +2775,14 @@ function RecipeDetail({ r, onBack, prefs, cookList, onToggleCook }: { r: Recipe;
       >
         <Lbl c="#25d366">Send to Your Cook</Lbl>
         <p style={{ color: "#4a7a5a", fontSize: 12, margin: "5px 0 10px", lineHeight: 1.5 }}>
-          Share this recipe via WhatsApp — steps, ingredients &amp; pairing included.
+          Share via WhatsApp — steps, YouTube, and 8 Indian languages included.
         </p>
         <WABtn message={formatRecipeForWA(r)} label={`Send "${r.name}" to Cook`} />
+        <CookVoiceNotePanel
+          mode="recipe"
+          recipe={r}
+          filenamePrefix={r.name.replace(/\s+/g, "-").toLowerCase()}
+        />
       </div>
 
       {/* ── YouTube Thumbnail Cards ── */}
@@ -3720,6 +3757,15 @@ function PlanScreen({ prefs }: { prefs: Prefs }) {
         <WABtn
           message={formatPlanDayForWA({ full: d.full, breakfast: d.breakfast ?? null, lunch: d.lunch ?? null, dinner: d.dinner ?? null })}
           label={`Send ${openDay === todayIdx ? "Today's" : d.full + "'s"} Menu to Cook`}
+        />
+        <CookVoiceNotePanel
+          mode="plan"
+          plan={{
+            breakfast: d.breakfast ?? null,
+            lunch: d.lunch ?? null,
+            dinner: d.dinner ?? null,
+          }}
+          filenamePrefix={`menu-${d.full.replace(/\s+/g, "-").toLowerCase()}`}
         />
         <div style={{ marginBottom: 12 }} />
         {[
